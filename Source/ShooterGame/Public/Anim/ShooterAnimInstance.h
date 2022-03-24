@@ -38,6 +38,9 @@ protected:
 	//停止移动的最后一帧Yaw
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float LastMovementOffsetYaw;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	bool bIsAiming;
 protected:
 	void NativeInitializeAnimation() override;
 	

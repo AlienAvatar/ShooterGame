@@ -12,8 +12,16 @@
 AShootCharacter::AShootCharacter():
 	BaseTurnRate(45.f),
 	BaseLookUpRate(45.f),
+	//相机视距的值
 	CameraDefaultFOV(0.0f),
-	CameraZoomedFOV(60.f)
+	CameraZoomedFOV(60.f),
+	CameraCurrentFOV(0.f),
+	ZoomInterpSpeed(20.f),
+	AimingTurnRate(0.2f),
+	AimingLookUpRate(0.2f),
+	HipTurnRate(1.0f),
+	HipLookUpRate(1.0f),
+	FireRate(0.2f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -56,13 +64,10 @@ void AShootCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if(bIsAiming)
-	{
-		
-	}else
-	{
-		
-	}
+	CameraInterpZoom(DeltaTime);
+
+	//计算准星扩展系数
+	CalculateCrosshairSpread(DeltaTime);
 }
 
 void AShootCharacter::MoveForward(float Value)
@@ -93,38 +98,53 @@ void AShootCharacter::MoveRight(float Value)
 
 void AShootCharacter::LookUpRate(float Value)
 {
-	AddControllerPitchInput(Value * BaseLookUpRate * GetWorld()->DeltaTimeSeconds);
+	AddControllerPitchInput(Value * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
 void AShootCharacter::TurnRate(float Value)
 {
-	AddControllerYawInput(Value * BaseTurnRate * GetWorld()->DeltaTimeSeconds);
+	AddControllerYawInput(Value * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+}
+
+void AShootCharacter::LookUp(float Value)
+{
+	float LookUpRateScale;
+	if(bIsAiming)
+	{
+		LookUpRateScale = AimingLookUpRate;
+	}else
+	{
+		LookUpRateScale = HipLookUpRate;
+	}
+	
+	AddControllerPitchInput(Value * LookUpRateScale);
+}
+
+void AShootCharacter::Turn(float Value)
+{
+	float TurnRateScale;
+	if(bIsAiming)
+	{
+		TurnRateScale = AimingTurnRate;
+	}else
+	{
+		TurnRateScale =  HipTurnRate;
+	}
+	AddControllerYawInput(Value * TurnRateScale);
 }
 
 void AShootCharacter::FireWeaponPressed()
 {
-	//播放开火声音
-	if(FireSound)
+	if(bFireWeaponPressed)
 	{
-		UGameplayStatics::PlaySound2D(GetWorld(),FireSound);
-	}
-	//获取枪口位置
-	const FTransform BarrelSocketTransform = GetMesh()->GetSocketTransform(FName("BarrelSocket"));
-	FVector BeamLocation;
-	bool bBeamEnd = GetBeamEndLocation(BarrelSocketTransform.GetLocation(),BeamLocation);
-
-	if(bBeamEnd)
-	{
-		//播放粒子效果
-		PlayWeaponEffect(BeamLocation,BarrelSocketTransform);
+		bFireWeaponPressed = false;
+		if(bShouldFire)
+		{
+			StartFire();
+			GetWorldTimerManager().SetTimer(FireTimerHandle,this,&AShootCharacter::ResetFire,FireRate);
+		}
 	}
 	
-	//播放开火动画
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if(AnimInstance && FireMontage)
-	{
-		AnimInstance->Montage_Play(FireMontage);
-	}
 }
 
 void AShootCharacter::PlayWeaponEffect(FVector BeamLocation, FTransform SocketTransform)
@@ -205,15 +225,106 @@ bool AShootCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FV
 void AShootCharacter::AimingPressed()
 {
 	bIsAiming = true;
-	CameraComp->SetFieldOfView(CameraZoomedFOV);
 }
 
 void AShootCharacter::AimingRealeaed()
 {
 	bIsAiming = false;
-	CameraComp->SetFieldOfView(CameraDefaultFOV);
 }
 
+void AShootCharacter::CameraInterpZoom(float DeltaTime)
+{
+	if(bIsAiming)
+	{
+		CameraCurrentFOV = FMath::FInterpTo(
+			CameraCurrentFOV,
+			CameraZoomedFOV,
+			DeltaTime,
+			ZoomInterpSpeed);
+
+		
+	}else
+	{
+		CameraCurrentFOV = FMath::FInterpTo(
+			CameraCurrentFOV,
+			CameraDefaultFOV,
+			DeltaTime,
+			ZoomInterpSpeed);
+	}
+	CameraComp->SetFieldOfView(CameraCurrentFOV);
+}
+
+void AShootCharacter::CalculateCrosshairSpread(float DeltaTime)
+{
+	const float MaxSpeed = GetCharacterMovement()->MaxWalkSpeed;
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0;
+	FVector2D Speed(0,MaxSpeed);
+	FVector2D Range(0,1);
+	CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(Speed,Range,Velocity.Size());
+
+	if(bIsAiming)
+	{
+		CrosshairAimFactor = 0.5f;
+	}else
+	{
+		CrosshairAimFactor = 0.0f;
+	}
+
+	if(GetCharacterMovement()->IsFalling())
+	{
+		CrosshairInAirFactor = 0.5f;
+	}else
+	{
+		CrosshairInAirFactor = 0.0f;
+	}
+	CrosshairSpreadMultiplier = 0.5 + CrosshairVelocityFactor - CrosshairAimFactor + CrosshairInAirFactor;
+	
+}
+
+void AShootCharacter::JumpingPressed()
+{
+	bIsJumping = true;
+}
+
+void AShootCharacter::JumpingReleased()
+{
+	bIsJumping = false;
+}
+
+void AShootCharacter::StartFire()
+{
+	//播放开火声音
+	if(FireSound)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(),FireSound);
+	}
+	//获取枪口位置
+	const FTransform BarrelSocketTransform = GetMesh()->GetSocketTransform(FName("BarrelSocket"));
+	FVector BeamLocation;
+	bool bBeamEnd = GetBeamEndLocation(BarrelSocketTransform.GetLocation(),BeamLocation);
+
+	if(bBeamEnd)
+	{
+		//播放粒子效果
+		PlayWeaponEffect(BeamLocation,BarrelSocketTransform);
+	}
+	
+	//播放开火动画
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if(AnimInstance && FireMontage)
+	{
+		AnimInstance->Montage_Play(FireMontage);
+	}
+}
+
+void AShootCharacter::ResetFire()
+{
+	if(bFireWeaponPressed)
+	{
+		StartFire();
+	}
+}
 
 
 // Called to bind functionality to input
@@ -227,8 +338,8 @@ void AShootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAxis("MoveRight",this,&AShootCharacter::MoveRight);
 	PlayerInputComponent->BindAxis("TurnRate",this,&AShootCharacter::TurnRate);
 	PlayerInputComponent->BindAxis("LookUpRate",this,&AShootCharacter::LookUpRate);
-	PlayerInputComponent->BindAxis("Turn",this,&AShootCharacter::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp",this,&AShootCharacter::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("Turn",this,&AShootCharacter::Turn);
+	PlayerInputComponent->BindAxis("LookUp",this,&AShootCharacter::LookUp);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);

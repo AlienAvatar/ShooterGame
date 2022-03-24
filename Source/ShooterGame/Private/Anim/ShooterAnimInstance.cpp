@@ -55,6 +55,8 @@ void UShooterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		{
 			LastMovementOffsetYaw = MovementOffsetYaw;
 		}
+
+		bIsAiming = Character->GetIsAiming();
 	}else
 	{
 		Character = Cast<AShootCharacter>(TryGetPawnOwner());

@@ -62,6 +62,60 @@ protected:
 
 	/** Field of view value for when zoomed in */
 	float CameraZoomedFOV;
+
+	/** 当前帧缩放*/
+	float CameraCurrentFOV;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float ZoomInterpSpeed;
+
+	//瞄准时鼠标X轴移动速度
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float AimingTurnRate;
+
+	//瞄准时鼠标Y轴移动速度
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float AimingLookUpRate;
+
+	//Hip时鼠标X轴移动速度
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float HipTurnRate;
+
+	//Hip时鼠标Y轴移动速度
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float HipLookUpRate;
+
+	//准星缩放 速度
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
+	float CrosshairVelocityFactor;
+
+	//准星缩放 空中时
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
+	float CrosshairInAirFactor;
+
+	//准星缩放 瞄准时
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
+	float CrosshairAimFactor;
+
+	//准星缩放 开火时
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
+	float CrosshairShootingFactor;
+
+	//准星系数
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
+	float CrosshairSpreadMultiplier;
+
+	//是否跳跃
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
+	bool bIsJumping;
+
+	FTimerHandle FireTimerHandle;
+
+	bool bShouldFire;
+
+	bool bFireWeaponPressed;
+
+	float FireRate;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -73,6 +127,10 @@ protected:
 	void LookUpRate(float Value);
 
 	void TurnRate(float Value);
+
+	void LookUp(float Value);
+
+	void Turn(float Value);
 	
 	void FireWeaponPressed();
 
@@ -83,7 +141,18 @@ protected:
 	void AimingPressed();
 	
 	void AimingRealeaed();
-	
+
+	void CameraInterpZoom(float DeltaTime);
+
+	void CalculateCrosshairSpread(float DeltaTime);
+
+	void JumpingPressed();
+
+	void JumpingReleased();
+
+	void StartFire();
+
+	void ResetFire();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -91,4 +160,5 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	FORCEINLINE bool GetIsAiming() const{ return bIsAiming; }
 };
