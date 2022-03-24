@@ -11,7 +11,9 @@
 // Sets default values
 AShootCharacter::AShootCharacter():
 	BaseTurnRate(45.f),
-	BaseLookUpRate(45.f)
+	BaseLookUpRate(45.f),
+	CameraDefaultFOV(0.0f),
+	CameraZoomedFOV(60.f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -43,6 +45,24 @@ void AShootCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (CameraComp)
+	{
+		CameraDefaultFOV = CameraComp->FieldOfView;
+	}
+}
+
+// Called every frame
+void AShootCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if(bIsAiming)
+	{
+		
+	}else
+	{
+		
+	}
 }
 
 void AShootCharacter::MoveForward(float Value)
@@ -182,12 +202,19 @@ bool AShootCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FV
 	return false;
 }
 
-// Called every frame
-void AShootCharacter::Tick(float DeltaTime)
+void AShootCharacter::AimingPressed()
 {
-	Super::Tick(DeltaTime);
-
+	bIsAiming = true;
+	CameraComp->SetFieldOfView(CameraZoomedFOV);
 }
+
+void AShootCharacter::AimingRealeaed()
+{
+	bIsAiming = false;
+	CameraComp->SetFieldOfView(CameraDefaultFOV);
+}
+
+
 
 // Called to bind functionality to input
 void AShootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -205,5 +232,8 @@ void AShootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+
+	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &AShootCharacter::AimingPressed);
+	PlayerInputComponent->BindAction("Aiming", IE_Released, this, &AShootCharacter::AimingRealeaed);
 }
 

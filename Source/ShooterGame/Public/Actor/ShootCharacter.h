@@ -53,7 +53,15 @@ protected:
 	//烟雾轨迹
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Effect",meta=(AllowPrivateAccess = true))
 	UParticleSystem* BeamParticles;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	bool bIsAiming;
 	
+	/** Default camera field of view value */
+	float CameraDefaultFOV;
+
+	/** Field of view value for when zoomed in */
+	float CameraZoomedFOV;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -71,6 +79,10 @@ protected:
 	void PlayWeaponEffect(FVector BeamLocation,FTransform SocketTransform);
 
 	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
+
+	void AimingPressed();
+	
+	void AimingRealeaed();
 	
 public:	
 	// Called every frame
