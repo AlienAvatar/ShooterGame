@@ -116,6 +116,12 @@ protected:
 	bool bFireWeaponPressed;
 
 	float FireRate;
+
+	bool bFiringBullet;
+
+	FTimerHandle CrosshairShootTimer;
+
+	float ShootTimeDuration;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -134,6 +140,8 @@ protected:
 	
 	void FireWeaponPressed();
 
+	void FireWeaponRealeased();
+	
 	void PlayWeaponEffect(FVector BeamLocation,FTransform SocketTransform);
 
 	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
@@ -150,9 +158,15 @@ protected:
 
 	void JumpingReleased();
 
-	void StartFire();
+	void FireWeapon();
 
+	void StartFire();
+	
 	void ResetFire();
+
+	void StartCrosshairBulletFire();
+
+	void FinishCrosshairBulletFire();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

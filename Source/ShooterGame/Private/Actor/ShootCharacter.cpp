@@ -21,7 +21,12 @@ AShootCharacter::AShootCharacter():
 	AimingLookUpRate(0.2f),
 	HipTurnRate(1.0f),
 	HipLookUpRate(1.0f),
-	FireRate(0.2f)
+	// Automatic fire variables
+	FireRate(0.2f),
+	bShouldFire(true),
+	bFireWeaponPressed(false),
+	ShootTimeDuration(0.05f),
+	bFiringBullet(false)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -135,16 +140,13 @@ void AShootCharacter::Turn(float Value)
 
 void AShootCharacter::FireWeaponPressed()
 {
-	if(bFireWeaponPressed)
-	{
-		bFireWeaponPressed = false;
-		if(bShouldFire)
-		{
-			StartFire();
-			GetWorldTimerManager().SetTimer(FireTimerHandle,this,&AShootCharacter::ResetFire,FireRate);
-		}
-	}
-	
+	bFireWeaponPressed = true;
+	StartFire();
+}
+
+void AShootCharacter::FireWeaponRealeased()
+{
+	bFireWeaponPressed = false;
 }
 
 void AShootCharacter::PlayWeaponEffect(FVector BeamLocation, FTransform SocketTransform)
@@ -292,7 +294,7 @@ void AShootCharacter::JumpingReleased()
 	bIsJumping = false;
 }
 
-void AShootCharacter::StartFire()
+void AShootCharacter::FireWeapon()
 {
 	//播放开火声音
 	if(FireSound)
@@ -318,12 +320,43 @@ void AShootCharacter::StartFire()
 	}
 }
 
+void AShootCharacter::StartFire()
+{
+	if(bShouldFire)
+	{
+		bShouldFire = false;
+		FireWeapon();
+		GetWorldTimerManager().SetTimer(
+			FireTimerHandle,
+			this,
+			&AShootCharacter::ResetFire,
+			FireRate);
+	}
+}
+
 void AShootCharacter::ResetFire()
 {
+	bShouldFire = true;
 	if(bFireWeaponPressed)
 	{
 		StartFire();
 	}
+}
+
+void AShootCharacter::StartCrosshairBulletFire()
+{
+	bFiringBullet = true;
+
+	GetWorldTimerManager().SetTimer(
+	CrosshairShootTimer, 
+	this, 
+	&AShootCharacter::FinishCrosshairBulletFire, 
+	ShootTimeDuration);
+}
+
+void AShootCharacter::FinishCrosshairBulletFire()
+{
+	bFiringBullet = false;
 }
 
 
@@ -333,6 +366,7 @@ void AShootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	PlayerInputComponent->BindAction("Fire",EInputEvent::IE_Pressed,this,&AShootCharacter::FireWeaponPressed);
+	PlayerInputComponent->BindAction("Fire",EInputEvent::IE_Released,this,&AShootCharacter::FireWeaponRealeased);
 	
 	PlayerInputComponent->BindAxis("MoveForward",this,&AShootCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight",this,&AShootCharacter::MoveRight);
