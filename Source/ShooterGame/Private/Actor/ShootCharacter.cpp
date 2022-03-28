@@ -28,7 +28,9 @@ AShootCharacter::AShootCharacter():
 	bShouldFire(true),
 	bFireWeaponPressed(false),
 	ShootTimeDuration(0.05f),
-	bFiringBullet(false)
+	bFiringBullet(false),
+	bShouldTraceForItems(false),
+	OverlappedItemCount(0)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -393,6 +395,25 @@ bool AShootCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult,FVector& Out
 	return false;
 }
 
+void AShootCharacter::TraceForItems()
+{
+	if (bShouldTraceForItems)
+	{
+		FHitResult ItemTraceResult;
+		FVector HitLocation;
+		TraceUnderCrosshairs(ItemTraceResult, HitLocation);
+		if (ItemTraceResult.bBlockingHit)
+		{
+			AItemBase* HitItem = Cast<AItemBase>(ItemTraceResult.Actor);
+			if (HitItem && HitItem->GetPickupWidget())
+			{
+				// Show Item's Pickup Widget
+				HitItem->GetPickupWidget()->SetVisibility(true);
+			}
+		}
+	}
+}
+
 
 // Called to bind functionality to input
 void AShootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -414,5 +435,19 @@ void AShootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &AShootCharacter::AimingPressed);
 	PlayerInputComponent->BindAction("Aiming", IE_Released, this, &AShootCharacter::AimingRealeaed);
+}
+
+void AShootCharacter::IncrementOverlappedItemCount(int8 Amount)
+{
+	if (OverlappedItemCount + Amount <= 0)
+	{
+		OverlappedItemCount = 0;
+		bShouldTraceForItems = false;
+	}
+	else
+	{
+		OverlappedItemCount += Amount;
+		bShouldTraceForItems = true;
+	}
 }
 
