@@ -19,10 +19,10 @@ AShootCharacter::AShootCharacter():
 	CameraZoomedFOV(60.f),
 	CameraCurrentFOV(0.f),
 	ZoomInterpSpeed(20.f),
-	AimingTurnRate(0.2f),
-	AimingLookUpRate(0.2f),
-	HipTurnRate(1.0f),
-	HipLookUpRate(1.0f),
+	AimingTurnRate(20.0f),
+	AimingLookUpRate(20.0f),
+	HipTurnRate(90.0f),
+	HipLookUpRate(90.0f),
 	// Automatic fire variables
 	FireRate(0.2f),
 	bShouldFire(true),
@@ -30,7 +30,11 @@ AShootCharacter::AShootCharacter():
 	ShootTimeDuration(0.05f),
 	bFiringBullet(false),
 	bShouldTraceForItems(false),
-	OverlappedItemCount(0)
+	OverlappedItemCount(0),
+	MouseHipTurnFactor(1.0f),
+	MouseHipLookUpFactor(1.0f),
+	MouseAimingTurnFactor(0.2f),
+	MouseAimingLookUpFactor(0.2f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -73,24 +77,13 @@ void AShootCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-
+	//摄像机的放大缩小
 	CameraInterpZoom(DeltaTime);
 
 	//计算准星扩展系数
 	CalculateCrosshairSpread(DeltaTime);
-	
-	FHitResult ItemTraceResult;
-	FVector HitLocation;
-	TraceUnderCrosshairs(ItemTraceResult,HitLocation);
-	if (ItemTraceResult.bBlockingHit)
-	{
-		AItemBase* HitItem = Cast<AItemBase>(ItemTraceResult.Actor);
-		if (HitItem && HitItem->GetPickupWidget())
-		{
-			// Show Item's Pickup Widget
-			HitItem->GetPickupWidget()->SetVisibility(true);
-		}
-	}
+	//检测跟踪射线
+	TraceForItems();
 }
 
 void AShootCharacter::MoveForward(float Value)
@@ -134,10 +127,10 @@ void AShootCharacter::LookUp(float Value)
 	float LookUpRateScale;
 	if(bIsAiming)
 	{
-		LookUpRateScale = AimingLookUpRate;
+		LookUpRateScale = MouseAimingLookUpFactor;
 	}else
 	{
-		LookUpRateScale = HipLookUpRate;
+		LookUpRateScale = MouseHipLookUpFactor;
 	}
 	
 	AddControllerPitchInput(Value * LookUpRateScale);
@@ -148,10 +141,10 @@ void AShootCharacter::Turn(float Value)
 	float TurnRateScale;
 	if(bIsAiming)
 	{
-		TurnRateScale = AimingTurnRate;
+		TurnRateScale = MouseAimingTurnFactor;
 	}else
 	{
-		TurnRateScale =  HipTurnRate;
+		TurnRateScale =  MouseHipTurnFactor;
 	}
 	AddControllerYawInput(Value * TurnRateScale);
 }
@@ -410,7 +403,34 @@ void AShootCharacter::TraceForItems()
 				// Show Item's Pickup Widget
 				HitItem->GetPickupWidget()->SetVisibility(true);
 			}
+
+			if (TraceHitItemLastFrame)
+			{
+				if (HitItem != TraceHitItemLastFrame)
+				{
+					TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+				}
+			}
+			TraceHitItemLastFrame = HitItem;
 		}
+	}
+	else if (TraceHitItemLastFrame)
+	{
+		TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+	}
+}
+
+void AShootCharacter::SetLookRates()
+{
+	if (bIsAiming)
+	{
+		BaseTurnRate = AimingTurnRate;
+		BaseLookUpRate = AimingLookUpRate;
+	}
+	else
+	{
+		BaseTurnRate = HipTurnRate;
+		BaseLookUpRate = HipLookUpRate;
 	}
 }
 

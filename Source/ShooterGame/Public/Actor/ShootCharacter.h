@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ItemBase.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -18,7 +19,7 @@ public:
 	// Sets default values for this character's properties
 	AShootCharacter();
 
-protected:
+private:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Comp",meta=(AllowPrivateAccess = true))
 	USpringArmComponent* SpringArmComp;
 	
@@ -128,7 +129,23 @@ protected:
 
 	/** Number of overlapped AItems */
 	int8 OverlappedItemCount;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	AItemBase* TraceHitItemLastFrame;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"), meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float MouseHipTurnFactor;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"), meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float MouseHipLookUpFactor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"), meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float MouseAimingTurnFactor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"), meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float MouseAimingLookUpFactor;
+protected:
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -179,6 +196,8 @@ protected:
 
 	/** Trace for items if OverlappedItemCount > 0 */
 	void TraceForItems();
+
+	void SetLookRates();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
